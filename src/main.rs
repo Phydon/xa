@@ -46,7 +46,7 @@ fn main() {
 
     // handle arguments
     let matches = xargs().get_matches();
-    // let last_flag = matches.get_flag("last");
+    let replace_flag = matches.get_flag("replace");
 
     if let Some(_) = matches.subcommand_matches("log") {
         if let Ok(logs) = show_log_file(&config_dir) {
@@ -58,10 +58,15 @@ fn main() {
         }
     } else {
         // TODO read everything given here as ONE argument
-        if let Some(arg) = matches.get_one::<String>("arg") {
+        // FIXME only works with '"'
+        if let Some(args) = matches
+            .get_many::<String>("arg")
+            .map(|a| a.collect::<Vec<_>>())
+        {
             // TODO check for valid input (simple strings)
             let piped_arg = read_pipe();
-            let cmd = build_cmd(arg, piped_arg);
+
+            let cmd = build_cmd(args, piped_arg, replace_flag);
 
             run_cmd(&cmd);
         } else {
@@ -82,13 +87,26 @@ fn read_pipe() -> String {
     input.trim().to_string()
 }
 
-fn build_cmd(cmd: &str, arg: String) -> String {
+fn vec_to_str(str_vec: Vec<&String>) -> String {
+    str_vec.iter().map(|s| s.to_string()).collect::<String>()
+}
+
+fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
+    let cmd = vec_to_str(cmd_vec);
+    // TODO remove later
+    dbg!(&cmd);
+
     // split given command if it has flags
     // respect placeholders
     let mut combined_cmd = String::new();
-    combined_cmd.push_str(cmd);
-    combined_cmd.push_str(" ");
-    combined_cmd.push_str(&arg);
+    if replace_flag {
+        // TODO in powershell: is '{}' a problem?
+        combined_cmd.push_str(&cmd.replace("{}", &arg));
+    } else {
+        combined_cmd.push_str(&cmd);
+        combined_cmd.push_str(" ");
+        combined_cmd.push_str(&arg);
+    }
 
     combined_cmd
 }
@@ -96,6 +114,7 @@ fn build_cmd(cmd: &str, arg: String) -> String {
 fn run_cmd(cmd: &str) {
     if cfg!(target_os = "windows") {
         std::process::Command::new("powershell")
+            // TODO use arg instead of args -> split flags separatly by '-' ?
             .args(["-c", cmd])
             .status()
             .unwrap();
@@ -125,26 +144,16 @@ fn xargs() -> Command {
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("arg")
-                .help("The filepath to work with")
+                .help("The command that takes an argument from stdin")
                 .action(ArgAction::Set)
-                .num_args(1)
-                .value_name("PATH"),
+                .value_name("COMMAND"),
         )
         .arg(
-            Arg::new("last")
-                .short('l')
-                .long("last")
-                .help("Show last n lines")
+            Arg::new("replace")
+                .short('r')
+                .long("replace")
+                .help("Replace the given placeholder with the string from stdin")
                 .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("num")
-                .short('n')
-                .long("num")
-                .help("Number of lines to show")
-                .action(ArgAction::Set)
-                .num_args(1)
-                .value_name("NUMBER"),
         )
         .subcommand(
             Command::new("log")
