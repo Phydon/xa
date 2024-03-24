@@ -1,6 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
-use log::{error, warn};
+use log::error;
 use owo_colors::colored::*;
 
 use std::{
@@ -57,84 +57,16 @@ fn main() {
             process::exit(1);
         }
     } else {
-        // number of lines to show defaults to 10
-        let mut num_flag: u32 = 10;
-        if let Some(n) = matches.get_one::<String>("num") {
-            match n.parse::<u32>() {
-                Ok(num) => num_flag = num,
-                Err(err) => {
-                    warn!("Expected an integer for the number of lines to show: {err}");
-                    process::exit(0);
-                }
-            }
-        }
-
-        let mut content = String::new();
-
-        let mut file = PathBuf::new();
+        // TODO read everything given here as ONE argument
         if let Some(arg) = matches.get_one::<String>("arg") {
-            // get filepath
+            // TODO check for valid input (simple strings)
+            let piped_arg = read_pipe();
+            let cmd = build_cmd(arg, piped_arg);
 
-            // TODO remove later
-            // let path = Path::new(&arg);
-
-            file.push(&arg);
+            run_cmd(&cmd);
         } else {
-            // read input from pipe
-
-            // TODO remove later
-            // let _ = peakfile().print_help();
-            // process::exit(0);
-
-            let pipe_input = read_pipe();
-            file.push(pipe_input);
-        }
-
-        let path = file.as_path();
-
-        if !path.exists() {
-            warn!("Path '{}' doesn`t exist", path.display());
+            let _ = xargs().print_help();
             process::exit(0);
-        }
-
-        if !path.is_file() {
-            warn!("Path '{}' is not a file", path.display());
-            process::exit(0);
-        }
-
-        // read content from file
-        let file_content = fs::read_to_string(path).unwrap_or_else(|err| {
-            match err.kind() {
-                io::ErrorKind::InvalidData => {
-                    warn!("Path \'{}\' contains invalid data: {}", path.display(), err)
-                }
-                io::ErrorKind::NotFound => {
-                    warn!("Path \'{}\' not found: {}", path.display(), err);
-                }
-                io::ErrorKind::PermissionDenied => {
-                    warn!(
-                        "Missing permission to read path \'{}\': {}",
-                        path.display(),
-                        err
-                    )
-                }
-                _ => {
-                    error!(
-                        "Failed to access path: \'{}\'\nUnexpected error occurred: {}",
-                        path.display(),
-                        err
-                    )
-                }
-            }
-            process::exit(0);
-        });
-
-        content.push_str(&file_content);
-
-        if last_flag {
-            show_last_n_lines(&content, num_flag);
-        } else {
-            show_first_n_lines(&content, num_flag);
         }
     }
 }
@@ -150,21 +82,26 @@ fn read_pipe() -> String {
     input.trim().to_string()
 }
 
-fn build_cmd(given_cmd: String) -> String {
-    todo!();
-
+fn build_cmd(cmd: &str, arg: String) -> String {
     // split given command if it has flags
     // respect placeholders
+    let mut combined_cmd = String::new();
+    combined_cmd.push_str(cmd);
+    combined_cmd.push_str(" ");
+    combined_cmd.push_str(&arg);
+
+    combined_cmd
 }
 
 fn run_cmd(cmd: &str) {
-    todo!();
-
-    // if cfg!(target_os = "windows") {
-    //     Command::new("powershell").args(["-c", cmd]).status.unwrap();
-    // } else {
-    //     unimplemented!();
-    // }
+    if cfg!(target_os = "windows") {
+        std::process::Command::new("powershell")
+            .args(["-c", cmd])
+            .status()
+            .unwrap();
+    } else {
+        unimplemented!();
+    }
 }
 
 // build cli
