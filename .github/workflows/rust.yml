@@ -1,4 +1,4 @@
-name: Rust
+name: Tests
 
 run-name: test [ ${{ github.run_number }} ] / attempt [ ${{github.run_attempt}} ] triggered by @${{ github.actor}}
 
