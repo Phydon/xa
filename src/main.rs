@@ -59,14 +59,20 @@ fn main() {
     } else {
         // TODO read everything given here as ONE argument
         // FIXME only works with '"'
+        // TODO read as literal string
         if let Some(args) = matches
             .get_many::<String>("arg")
             .map(|a| a.collect::<Vec<_>>())
         {
-            // TODO check for valid input (simple strings)
+            // TODO check for valid input (simple strings, no invalid special chars like '\n')
+            // TODO handle multiple lines of input
             let piped_arg = read_pipe();
+            // TODO remove later
+            dbg!(&piped_arg);
 
             let cmd = build_cmd(args, piped_arg, replace_flag);
+            // TODO remove later
+            dbg!(&cmd);
 
             run_cmd(&cmd);
         } else {
@@ -87,12 +93,23 @@ fn read_pipe() -> String {
     input.trim().to_string()
 }
 
-fn vec_to_str(str_vec: Vec<&String>) -> String {
-    str_vec.iter().map(|s| s.to_string()).collect::<String>()
+fn append_space(str_vec: Vec<&String>) -> String {
+    let mut strg = String::new();
+    for s in &str_vec {
+        strg.push_str(s);
+
+        if str_vec.iter().last() == Some(&s) {
+            break;
+        } else {
+            strg.push_str(" ");
+        }
+    }
+
+    strg
 }
 
 fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
-    let cmd = vec_to_str(cmd_vec);
+    let cmd = append_space(cmd_vec);
     // TODO remove later
     dbg!(&cmd);
 
@@ -101,6 +118,8 @@ fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
     let mut combined_cmd = String::new();
     if replace_flag {
         // TODO in powershell: is '{}' a problem?
+        // INFO -> surround '{}' with quotation marks
+        // TODO add to help flag
         combined_cmd.push_str(&cmd.replace("{}", &arg));
     } else {
         combined_cmd.push_str(&cmd);
@@ -145,7 +164,7 @@ fn xargs() -> Command {
         .arg(
             Arg::new("arg")
                 .help("The command that takes an argument from stdin")
-                .action(ArgAction::Set)
+                .action(ArgAction::Append)
                 .value_name("COMMAND"),
         )
         .arg(
