@@ -61,14 +61,19 @@ fn main() {
         // FIXME only works with '"'
         // TODO read as literal string
         if let Some(args) = matches
-            .get_many::<String>("arg")
+            .get_many::<String>("args")
             .map(|a| a.collect::<Vec<_>>())
         {
-            // TODO check for valid input (simple strings, no invalid special chars like '\n')
-            // TODO handle multiple lines of input
             let piped_arg = read_pipe();
             // TODO remove later
             dbg!(&piped_arg);
+
+            // FIXME handle multiple lines of input -> replace workaround below
+            // check for valid input (simple strings, no invalid special chars like '\n')
+            if piped_arg.contains("\n") {
+                error!("Multiple lines in stdin detected:\n{}", piped_arg);
+                process::exit(0);
+            }
 
             let cmd = build_cmd(args, piped_arg, replace_flag);
             // TODO remove later
@@ -93,12 +98,23 @@ fn read_pipe() -> String {
     input.trim().to_string()
 }
 
-fn append_space(str_vec: Vec<&String>) -> String {
+// TODO handle multiple lines in stdin
+// fn split_pipe_by_lines(pipe: String) -> Vec<String> {
+//     let mut pipe_collector = Vec::new();
+//     for line in pipe.lines() {
+//         pipe_collector.push(line.to_string());
+//     }
+
+//     pipe_collector
+// }
+
+fn chain_args_with_space(args: Vec<&String>) -> String {
+    // chain given arguments together with a spaces inbetween
     let mut strg = String::new();
-    for s in &str_vec {
+    for s in &args {
         strg.push_str(s);
 
-        if str_vec.iter().last() == Some(&s) {
+        if args.iter().last() == Some(&s) {
             break;
         } else {
             strg.push_str(" ");
@@ -109,17 +125,13 @@ fn append_space(str_vec: Vec<&String>) -> String {
 }
 
 fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
-    let cmd = append_space(cmd_vec);
-    // TODO remove later
-    dbg!(&cmd);
+    let cmd = chain_args_with_space(cmd_vec);
 
     // split given command if it has flags
     // respect placeholders
     let mut combined_cmd = String::new();
     if replace_flag {
-        // TODO in powershell: is '{}' a problem?
         // INFO -> surround '{}' with quotation marks
-        // TODO add to help flag
         combined_cmd.push_str(&cmd.replace("{}", &arg));
     } else {
         combined_cmd.push_str(&cmd);
@@ -162,8 +174,8 @@ fn xargs() -> Command {
         .version("1.0.0")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
-            Arg::new("arg")
-                .help("The command that takes an argument from stdin")
+            Arg::new("args")
+                .help("The command to execute with an argument from stdin")
                 .action(ArgAction::Append)
                 .value_name("COMMAND"),
         )
@@ -171,7 +183,14 @@ fn xargs() -> Command {
             Arg::new("replace")
                 .short('r')
                 .long("replace")
-                .help("Replace the given placeholder with the string from stdin")
+                .help(
+                    "Replace the given placeholder [curly braces: '{}'] with the string from stdin",
+                )
+                .long_help(format!(
+                    "{}\n{}",
+                    "Replace the given placeholder [curly braces: '{}'] with the string from stdin",
+                    "You have to surround the curly braces with single quotes ['{}']"
+                ))
                 .action(ArgAction::SetTrue),
         )
         .subcommand(
