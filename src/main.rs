@@ -68,12 +68,7 @@ fn main() {
             // TODO remove later
             dbg!(&piped_arg);
 
-            // FIXME handle multiple lines of input -> replace workaround below
-            // check for valid input (simple strings, no invalid special chars like '\n')
-            if piped_arg.contains("\n") {
-                error!("Multiple lines in stdin detected:\n{}", piped_arg);
-                process::exit(0);
-            }
+            // FIXME handle multiple lines of input
 
             let cmd = build_cmd(args, piped_arg, replace_flag);
             // TODO remove later
@@ -124,7 +119,9 @@ fn chain_args_with_space(args: Vec<&String>) -> String {
     strg
 }
 
-fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
+fn build_cmd(cmd_vec: Vec<&String>, piped_arg: String, replace_flag: bool) -> String {
+    // FIXME handle multiple lines in stdin
+    // FIXME => execute cmd for every line in stdin
     let cmd = chain_args_with_space(cmd_vec);
 
     // split given command if it has flags
@@ -132,11 +129,12 @@ fn build_cmd(cmd_vec: Vec<&String>, arg: String, replace_flag: bool) -> String {
     let mut combined_cmd = String::new();
     if replace_flag {
         // INFO -> surround '{}' with quotation marks
-        combined_cmd.push_str(&cmd.replace("{}", &arg));
+        combined_cmd.push_str(&cmd.replace("{}", &piped_arg));
+        // FIXME ignores last given argument(s) when something gets replaced with input from stdin
     } else {
         combined_cmd.push_str(&cmd);
         combined_cmd.push_str(" ");
-        combined_cmd.push_str(&arg);
+        combined_cmd.push_str(&piped_arg);
     }
 
     combined_cmd
