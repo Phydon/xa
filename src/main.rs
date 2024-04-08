@@ -2,6 +2,7 @@ use clap::{Arg, ArgAction, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::error;
 use owo_colors::colored::*;
+use rayon::prelude::*;
 
 use std::{
     fs,
@@ -47,6 +48,7 @@ fn main() {
     // handle arguments
     let matches = xargs().get_matches();
     let replace_flag = matches.get_flag("replace");
+    let parallel_flag = matches.get_flag("parallel");
 
     if let Some(_) = matches.subcommand_matches("log") {
         if let Ok(logs) = show_log_file(&config_dir) {
@@ -73,12 +75,22 @@ fn main() {
             // TODO remove later
             dbg!(&piped_args);
 
-            for piped_arg in piped_args {
-                let cmd = build_cmd(&args, piped_arg, replace_flag);
-                // TODO remove later
-                dbg!(&cmd);
+            if parallel_flag {
+                piped_args.into_par_iter().for_each(|piped_arg| {
+                    let cmd = build_cmd(&args, piped_arg, replace_flag);
+                    // TODO remove later
+                    dbg!(&cmd);
 
-                run_cmd(&cmd);
+                    run_cmd(&cmd);
+                })
+            } else {
+                piped_args.into_iter().for_each(|piped_arg| {
+                    let cmd = build_cmd(&args, piped_arg, replace_flag);
+                    // TODO remove later
+                    dbg!(&cmd);
+
+                    run_cmd(&cmd);
+                })
             }
         } else {
             let _ = xargs().print_help();
@@ -125,8 +137,6 @@ fn chain_args_with_space(args: &Vec<&String>) -> String {
 }
 
 fn build_cmd(cmd_vec: &Vec<&String>, piped_args: String, replace_flag: bool) -> String {
-    // FIXME handle multiple lines in stdin
-    // FIXME => execute cmd for every line in stdin
     let cmd = chain_args_with_space(cmd_vec);
 
     // split given command if it has flags
@@ -181,6 +191,18 @@ fn xargs() -> Command {
                 .help("The command to execute with an argument from stdin")
                 .action(ArgAction::Append)
                 .value_name("COMMAND"),
+        )
+        .arg(
+            Arg::new("parallel")
+                .short('p')
+                .long("parallel")
+                .help("Process input in parallel if possible")
+                .long_help(format!(
+                    "{}\n{}",
+                    "Process input in parallel if possible",
+                    "The input order will most likely change"
+                ))
+                .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("replace")
