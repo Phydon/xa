@@ -59,27 +59,23 @@ fn main() {
             process::exit(1);
         }
     } else {
-        // TODO read everything given here as ONE argument
-        // FIXME only works with '"'
-        // TODO read as literal string
         if let Some(args) = matches
             .get_many::<String>("args")
             .map(|a| a.collect::<Vec<_>>())
         {
             let pipe = read_pipe();
             // TODO remove later
-            dbg!(&pipe);
+            // dbg!(&pipe);
 
-            // FIXME handle multiple lines of input
             let piped_args = split_pipe_by_lines(pipe);
             // TODO remove later
-            dbg!(&piped_args);
+            // dbg!(&piped_args);
 
             if parallel_flag {
                 piped_args.into_par_iter().for_each(|piped_arg| {
                     let cmd = build_cmd(&args, piped_arg, replace_flag);
                     // TODO remove later
-                    dbg!(&cmd);
+                    // dbg!(&cmd);
 
                     run_cmd(&cmd);
                 })
@@ -87,7 +83,7 @@ fn main() {
                 piped_args.into_iter().for_each(|piped_arg| {
                     let cmd = build_cmd(&args, piped_arg, replace_flag);
                     // TODO remove later
-                    dbg!(&cmd);
+                    // dbg!(&cmd);
 
                     run_cmd(&cmd);
                 })
@@ -189,6 +185,13 @@ fn xargs() -> Command {
         .arg(
             Arg::new("args")
                 .help("The command to execute with an argument from stdin")
+                .long_help(format!(
+                    "{}\n{}",
+                    "The command to execute with an argument from stdin",
+                    "Must be the last argument (everything will be treated as a literal string)",
+                ))
+                .trailing_var_arg(true)
+                .value_terminator(";")
                 .action(ArgAction::Append)
                 .value_name("COMMAND"),
         )
@@ -200,7 +203,7 @@ fn xargs() -> Command {
                 .long_help(format!(
                     "{}\n{}",
                     "Process input in parallel if possible",
-                    "The input order will most likely change"
+                    "The input order will most likely change" // INFO when used with 'mg' (minigrep) -> the performance flag [-p] must be set to make sure, the found matches aren't randomly placed under different filenames because of the parallel processing (and random output)
                 ))
                 .action(ArgAction::SetTrue),
         )
