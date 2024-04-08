@@ -64,17 +64,22 @@ fn main() {
             .get_many::<String>("args")
             .map(|a| a.collect::<Vec<_>>())
         {
-            let piped_arg = read_pipe();
+            let pipe = read_pipe();
             // TODO remove later
-            dbg!(&piped_arg);
+            dbg!(&pipe);
 
             // FIXME handle multiple lines of input
-
-            let cmd = build_cmd(args, piped_arg, replace_flag);
+            let piped_args = split_pipe_by_lines(pipe);
             // TODO remove later
-            dbg!(&cmd);
+            dbg!(&piped_args);
 
-            run_cmd(&cmd);
+            for piped_arg in piped_args {
+                let cmd = build_cmd(&args, piped_arg, replace_flag);
+                // TODO remove later
+                dbg!(&cmd);
+
+                run_cmd(&cmd);
+            }
         } else {
             let _ = xargs().print_help();
             process::exit(0);
@@ -93,20 +98,20 @@ fn read_pipe() -> String {
     input.trim().to_string()
 }
 
-// TODO handle multiple lines in stdin
-// fn split_pipe_by_lines(pipe: String) -> Vec<String> {
-//     let mut pipe_collector = Vec::new();
-//     for line in pipe.lines() {
-//         pipe_collector.push(line.to_string());
-//     }
+fn split_pipe_by_lines(pipe: String) -> Vec<String> {
+    // handle multiple lines in stdin
+    let mut collector = Vec::new();
+    for line in pipe.lines() {
+        collector.push(line.to_string());
+    }
 
-//     pipe_collector
-// }
+    collector
+}
 
-fn chain_args_with_space(args: Vec<&String>) -> String {
+fn chain_args_with_space(args: &Vec<&String>) -> String {
     // chain given arguments together with a spaces inbetween
     let mut strg = String::new();
-    for s in &args {
+    for s in args {
         strg.push_str(s);
 
         if args.iter().last() == Some(&s) {
@@ -119,7 +124,7 @@ fn chain_args_with_space(args: Vec<&String>) -> String {
     strg
 }
 
-fn build_cmd(cmd_vec: Vec<&String>, piped_arg: String, replace_flag: bool) -> String {
+fn build_cmd(cmd_vec: &Vec<&String>, piped_args: String, replace_flag: bool) -> String {
     // FIXME handle multiple lines in stdin
     // FIXME => execute cmd for every line in stdin
     let cmd = chain_args_with_space(cmd_vec);
@@ -129,12 +134,12 @@ fn build_cmd(cmd_vec: Vec<&String>, piped_arg: String, replace_flag: bool) -> St
     let mut combined_cmd = String::new();
     if replace_flag {
         // INFO -> surround '{}' with quotation marks
-        combined_cmd.push_str(&cmd.replace("{}", &piped_arg));
+        combined_cmd.push_str(&cmd.replace("{}", &piped_args));
         // FIXME ignores last given argument(s) when something gets replaced with input from stdin
     } else {
         combined_cmd.push_str(&cmd);
         combined_cmd.push_str(" ");
-        combined_cmd.push_str(&piped_arg);
+        combined_cmd.push_str(&piped_args);
     }
 
     combined_cmd
