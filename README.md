@@ -10,10 +10,6 @@
 - pipe the results to the next command via ![xa](https://github.com/Phydon/xa)
 - process every found file in parallel
 - search in all found matches for the word 'todo' (case-insensitive) (via ![mg](https://github.com/Phydon/mg))
-( --
-- quotation marks [""] have to be escaped in powershell via [`]: 
-    [""] -> [`"`"]
-    -- )
 
 ```powershell
 sf `"`" . -e rs -p | xa -rp mg todo '{}' -ip
