@@ -129,7 +129,8 @@ fn chain_args_with_space(args: &Vec<&String>) -> String {
         }
     }
 
-    strg
+    // remove leading and trailing whitespace
+    strg.trim().to_string()
 }
 
 fn build_cmd(cmd_vec: &Vec<&String>, piped_args: String, replace_flag: bool) -> String {
@@ -180,7 +181,7 @@ fn xargs() -> Command {
         ))
         .long_about(format!("{}", "XArgs",))
         // TODO update version
-        .version("1.0.0")
+        .version("1.0.1")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("args")
@@ -265,4 +266,55 @@ fn show_log_file(config_dir: &PathBuf) -> io::Result<String> {
             log_path.display()
         )),
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn split_pipe_by_lines_test() {
+        let pipe = "This\nis\na\ntest".to_string();
+        let result = split_pipe_by_lines(pipe);
+        let expected = vec!["This", "is", "a", "test"];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn chain_args_with_space_test() {
+        let binding_a = "This".to_string();
+        let binding_b = "is".to_string();
+        let binding_c = "a".to_string();
+        let binding_d = "test".to_string();
+        let mut args = Vec::new();
+
+        args.push(&binding_a);
+        args.push(&binding_b);
+        args.push(&binding_c);
+        args.push(&binding_d);
+
+        let result = chain_args_with_space(&args);
+        let expected = "This is a test".to_string();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn chain_args_with_space_test2() {
+        let binding_a = "This".to_string();
+        let binding_b = "is".to_string();
+        let binding_c = "a".to_string();
+        let binding_d = "test".to_string();
+        let binding_e = " ".to_string();
+        let mut args = Vec::new();
+
+        args.push(&binding_a);
+        args.push(&binding_b);
+        args.push(&binding_c);
+        args.push(&binding_d);
+        args.push(&binding_e);
+
+        let result = chain_args_with_space(&args);
+        let expected = "This is a test".to_string();
+        assert_eq!(result, expected);
+    }
 }
