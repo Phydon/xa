@@ -170,7 +170,7 @@ fn xargs() -> Command {
         ))
         .long_about(format!("{}", "XArgs",))
         // TODO update version
-        .version("1.0.1")
+        .version("1.0.2")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("args")
@@ -267,6 +267,14 @@ mod tests {
         let result = split_pipe_by_lines(pipe);
         let expected = vec!["This", "is", "a", "test"];
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn par_split_pipe_by_lines_test() {
+        let pipe = "This\nis\na\ntest".to_string();
+        let result = par_split_pipe_by_lines(pipe);
+        let expected = vec!["This", "is", "a", "test"];
+        assert!(result.par_iter().any(|x| expected.contains(&x.as_str())));
     }
 
     #[test]
