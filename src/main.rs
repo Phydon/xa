@@ -14,13 +14,7 @@ use std::{
 fn main() {
     // handle Ctrl+C
     ctrlc::set_handler(move || {
-        println!(
-            "{} {} {} {}",
-            "Received Ctrl-C!".bold().red(),
-            "🤬",
-            "Exit program!".bold().red(),
-            "☠",
-        );
+        println!("{}", "Received Ctrl-C!".italic(),);
         process::exit(0)
     })
     .expect("Error setting Ctrl-C handler");
@@ -64,26 +58,18 @@ fn main() {
             .map(|a| a.collect::<Vec<_>>())
         {
             let pipe = read_pipe();
-            // TODO remove later
-            // dbg!(&pipe);
-
-            let piped_args = split_pipe_by_lines(pipe);
-            // TODO remove later
-            // dbg!(&piped_args);
 
             if parallel_flag {
+                let piped_args = par_split_pipe_by_lines(pipe);
                 piped_args.into_par_iter().for_each(|piped_arg| {
                     let cmd = build_cmd(&args, piped_arg, replace_flag);
-                    // TODO remove later
-                    // dbg!(&cmd);
 
                     run_cmd(&cmd);
                 })
             } else {
+                let piped_args = split_pipe_by_lines(pipe);
                 piped_args.into_iter().for_each(|piped_arg| {
                     let cmd = build_cmd(&args, piped_arg, replace_flag);
-                    // TODO remove later
-                    // dbg!(&cmd);
 
                     run_cmd(&cmd);
                 })
@@ -108,12 +94,16 @@ fn read_pipe() -> String {
 
 fn split_pipe_by_lines(pipe: String) -> Vec<String> {
     // handle multiple lines in stdin
-    let mut collector = Vec::new();
-    for line in pipe.lines() {
-        collector.push(line.to_string());
-    }
+    pipe.lines()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+}
 
-    collector
+fn par_split_pipe_by_lines(pipe: String) -> Vec<String> {
+    // handle multiple lines in stdin in parallel
+    pipe.par_lines()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
 }
 
 fn chain_args_with_space(args: &Vec<&String>) -> String {
@@ -155,7 +145,6 @@ fn build_cmd(cmd_vec: &Vec<&String>, piped_args: String, replace_flag: bool) -> 
 fn run_cmd(cmd: &str) {
     if cfg!(target_os = "windows") {
         std::process::Command::new("powershell")
-            // TODO use arg instead of args -> split flags separatly by '-' ?
             .args(["-c", cmd])
             .status()
             .unwrap();
