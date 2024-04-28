@@ -52,6 +52,8 @@ fn main() {
             error!("Unable to read logs");
             process::exit(1);
         }
+    } else if let Some(_) = matches.subcommand_matches("examples") {
+        examples();
     } else {
         if let Some(args) = matches
             .get_many::<String>("args")
@@ -170,7 +172,7 @@ fn xargs() -> Command {
         ))
         .long_about(format!("{}", "XArgs",))
         // TODO update version
-        .version("1.0.2")
+        .version("1.0.3")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("args")
@@ -212,11 +214,47 @@ fn xargs() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .subcommand(
+            Command::new("examples")
+                .long_flag("examples")
+                .about("Show examples"),
+        )
+        .subcommand(
             Command::new("log")
                 .short_flag('L')
                 .long_flag("log")
                 .about("Show content of the log file"),
         )
+}
+
+fn examples() {
+    println!("\n{}\n----------", "Example 1".bold());
+    println!(
+        r###"
+$ ls 
+names.txt
+numbers.txt
+
+$ ls | xa cat
+alice
+bob
+charlie
+1
+2
+3
+    "###
+    );
+
+    println!("\n{}\n----------", "Example 2".bold());
+    println!(
+        r###"
+- search all Rust files in the current directory (via sf)
+- pipe the results to the next command via xa
+- process every found file in parallel
+- search in all found matches for the word 'todo' (case-insensitive) (via mg)
+
+$ sf `"`" . -e rs -p | xa -rp mg todo '{{}}' -ip
+    "###
+    );
 }
 
 fn check_create_config_dir() -> io::Result<PathBuf> {
