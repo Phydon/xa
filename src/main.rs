@@ -130,6 +130,7 @@ fn build_cmd(cmd_vec: &Vec<&String>, piped_args: String, replace_flag: bool) -> 
 
     // split given command if it has flags
     // respect placeholders
+    // FIXME TODO possible error when spaces in piped_args -> warn user or fix somehow (or ignore this and accept the error?)
     let mut combined_cmd = String::new();
     if replace_flag {
         // INFO -> surround '{}' with quotation marks
